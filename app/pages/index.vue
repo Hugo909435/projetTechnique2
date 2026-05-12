@@ -1,7 +1,15 @@
 <template>
-  <div></div>
+  <div />
 </template>
 
 <script setup lang="ts">
-await navigateTo('/login');
+import { useAuthStore } from '~/stores/auth'
+
+const authStore = useAuthStore()
+
+if (!authStore.isAuthenticated) {
+  await navigateTo('/login')
+} else {
+  await navigateTo('/dashboard')
+}
 </script>

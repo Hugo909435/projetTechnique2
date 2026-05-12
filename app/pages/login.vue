@@ -1,90 +1,114 @@
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gray-100">
     <div class="max-w-md w-full bg-white rounded-lg shadow-md p-8">
-      <h2 class="text-2xl font-bold text-center text-gray-800 mb-8">
-        Connexion
+      <h2 class="text-2xl font-bold text-center text-gray-800 mb-2">
+        Suivi de rapports d'alternance
       </h2>
+      <p class="text-center text-gray-500 text-sm mb-8">Connectez-vous à votre espace</p>
 
-      <form @submit.prevent="handleLogin">
+      <form @submit.prevent="handleLogin" novalidate>
         <div class="mb-4">
-          <label for="email" class="block text-gray-700 text-sm font-medium mb-2">
-            Email
-          </label>
+          <label class="block text-gray-700 text-sm font-medium mb-1">Email</label>
           <input
-            id="email"
             v-model="form.email"
             type="email"
-            required
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="email@exemple.com"
+            autocomplete="email"
+            class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            :class="errors.email ? 'border-red-400' : 'border-gray-300'"
+            placeholder="vous@exemple.com"
           />
+          <p v-if="errors.email" class="mt-1 text-xs text-red-600">{{ errors.email }}</p>
         </div>
 
         <div class="mb-6">
-          <label for="password" class="block text-gray-700 text-sm font-medium mb-2">
-            Mot de passe
-          </label>
+          <label class="block text-gray-700 text-sm font-medium mb-1">Mot de passe</label>
           <input
-            id="password"
             v-model="form.password"
             type="password"
-            required
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            autocomplete="current-password"
+            class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            :class="errors.password ? 'border-red-400' : 'border-gray-300'"
             placeholder="••••••••"
           />
+          <p v-if="errors.password" class="mt-1 text-xs text-red-600">{{ errors.password }}</p>
         </div>
 
-        <div v-if="error" class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-          {{ error }}
+        <div v-if="serverError" class="mb-4 p-3 bg-red-50 border border-red-300 text-red-700 rounded text-sm">
+          {{ serverError }}
         </div>
 
         <button
           type="submit"
           :disabled="loading"
-          class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
         >
-          <span v-if="loading">Connexion en cours...</span>
-          <span v-else>Se connecter</span>
+          {{ loading ? 'Connexion…' : 'Se connecter' }}
         </button>
       </form>
 
-      <div class="mt-6 text-center text-sm text-gray-600">
-        <p>Compte test : test@example.com / password123</p>
-      </div>
+      <details class="mt-6 text-xs text-gray-400">
+        <summary class="cursor-pointer select-none">Comptes de test</summary>
+        <div class="mt-2 space-y-0.5 font-mono">
+          <p>admin@example.com / password123 (Admin)</p>
+          <p>trainer1@example.com / password123 (Formateur)</p>
+          <p>tutor1@example.com / password123 (Tuteur)</p>
+          <p>student1@example.com / password123 (Étudiant)</p>
+        </div>
+      </details>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: false });
+import { z } from 'zod'
+import { useAuthStore } from '~/stores/auth'
 
-const { login } = useApi();
-const router = useRouter();
+definePageMeta({ layout: false })
 
-const form = reactive({ email: '', password: '' });
-const loading = ref(false);
-const error = ref('');
+const authStore = useAuthStore()
+const router = useRouter()
+
+const loginSchema = z.object({
+  email: z.string().email('Email invalide'),
+  password: z.string().min(1, 'Mot de passe requis'),
+})
+
+const form = reactive({ email: '', password: '' })
+const errors = reactive<{ email?: string; password?: string }>({})
+const serverError = ref('')
+const loading = ref(false)
 
 const handleLogin = async () => {
-  loading.value = true;
-  error.value = '';
+  serverError.value = ''
+  errors.email = undefined
+  errors.password = undefined
+
+  const result = loginSchema.safeParse(form)
+  if (!result.success) {
+    result.error.errors.forEach((e) => {
+      const field = e.path[0] as 'email' | 'password'
+      errors[field] = e.message
+    })
+    return
+  }
+
+  loading.value = true
+  const { useApi } = await import('~/composables/useApi')
+  const { auth } = useApi()
 
   try {
-    const response = await login(form.email, form.password);
-    const { token, user } = response.data;
-
-    localStorage.setItem('jwt_token', token);
-    localStorage.setItem('user', JSON.stringify(user));
-
-    await router.push('/home');
+    const response = await auth.login(form.email, form.password)
+    const { token, user } = response.data
+    authStore.setAuth(token, user)
+    await router.push('/dashboard')
   } catch (err: any) {
     if (err.code === 'ERR_NETWORK') {
-      error.value = "Impossible de contacter le serveur API. Vérifiez que l'API tourne sur le port 8080.";
+      serverError.value = "Impossible de contacter le serveur (port 8080)."
     } else {
-      error.value = err.response?.data?.message || 'Email ou mot de passe incorrect';
+      serverError.value = err.response?.data?.message || 'Email ou mot de passe incorrect'
     }
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 </script>
