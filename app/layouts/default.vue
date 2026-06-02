@@ -16,10 +16,6 @@
                 class="text-sm font-medium text-gray-700 hover:text-blue-600">
                 Utilisateurs
               </NuxtLink>
-              <NuxtLink to="/reports"
-                class="text-sm font-medium text-gray-700 hover:text-blue-600">
-                Rapports
-              </NuxtLink>
             </template>
 
             <!-- TRAINER -->
@@ -27,10 +23,6 @@
               <NuxtLink to="/trainer/students"
                 class="text-sm font-medium text-gray-700 hover:text-blue-600">
                 Mes étudiants
-              </NuxtLink>
-              <NuxtLink to="/reports"
-                class="text-sm font-medium text-gray-700 hover:text-blue-600">
-                Rapports
               </NuxtLink>
             </template>
 
@@ -40,10 +32,6 @@
                 class="text-sm font-medium text-gray-700 hover:text-blue-600">
                 Mes étudiants
               </NuxtLink>
-              <NuxtLink to="/reports"
-                class="text-sm font-medium text-gray-700 hover:text-blue-600">
-                Rapports
-              </NuxtLink>
             </template>
 
             <!-- STUDENT -->
@@ -52,17 +40,13 @@
                 class="text-sm font-medium text-gray-700 hover:text-blue-600">
                 Mon espace
               </NuxtLink>
-              <NuxtLink to="/reports"
-                class="text-sm font-medium text-gray-700 hover:text-blue-600">
-                Mes rapports
-              </NuxtLink>
             </template>
           </div>
 
           <div class="flex items-center gap-4">
-            <span v-if="authStore.user" class="text-sm text-gray-600">
+            <span v-if="authStore.user" class="text-sm font-semibold text-blue-600">
               {{ authStore.fullName }}
-              <span class="ml-1 text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
+              <span class="ml-1 text-xs bg-blue-100 text-blue-500 px-2 py-0.5 rounded">
                 {{ authStore.roleLabel }}
               </span>
             </span>

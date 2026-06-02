@@ -1,57 +1,87 @@
 <template>
   <div>
     <!-- En-tête -->
-    <div class="flex items-start justify-between mb-6">
-      <div class="flex items-center gap-3">
-        <NuxtLink to="/reports" class="text-blue-600 hover:underline text-sm">← Retour</NuxtLink>
+    <div class="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+      <div class="flex items-center gap-1.5 text-sm text-gray-400 mb-4">
+        <NuxtLink to="/reports" class="hover:text-gray-600 transition-colors">Rapports mensuels</NuxtLink>
+        <span>/</span>
+        <span class="text-gray-600 font-medium capitalize">{{ store.currentReport?.monthLabel ?? '…' }}</span>
+      </div>
+
+      <div class="flex items-start justify-between gap-4">
         <div>
-          <h1 class="text-2xl font-bold text-gray-800 capitalize">
+          <h1 class="text-2xl font-bold text-gray-900 capitalize leading-tight">
             {{ store.currentReport?.monthLabel ?? 'Rapport' }}
           </h1>
-          <p v-if="!authStore.isStudent && store.currentReport" class="text-sm text-gray-500 mt-0.5">
-            {{ store.currentReport.studentName }}
+          <p v-if="!authStore.isStudent && store.currentReport" class="text-sm text-gray-500 mt-1">
+            Étudiant : <span class="font-medium text-gray-700">{{ store.currentReport.studentName }}</span>
           </p>
         </div>
-      </div>
 
-      <div class="flex items-center gap-3" v-if="store.currentReport">
-        <ReportReportStatusBadge :status="store.currentReport.status" />
+        <div v-if="store.currentReport" class="flex items-center gap-2 flex-shrink-0">
+          <ReportStatusBadge :status="store.currentReport.status" />
 
-        <!-- Valider (TRAINER / TUTOR) -->
-        <button
-          v-if="canValidateAsTrainerOrTutor"
-          @click="showValidateModal = true"
-          :disabled="store.saving"
-          class="text-sm bg-green-600 text-white px-3 py-1.5 rounded-md hover:bg-green-700 disabled:opacity-50"
-        >
-          Valider le rapport
-        </button>
+          <button
+            v-if="canValidateAsTrainerOrTutor"
+            @click="showValidateModal = true"
+            :disabled="store.saving"
+            class="inline-flex items-center bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+          >
+            Valider le rapport
+          </button>
 
-        <!-- Rouvrir (TRAINER / ADMIN) -->
-        <button
-          v-if="canReopen"
-          @click="showReopenModal = true"
-          class="text-sm bg-orange-100 text-orange-700 px-3 py-1.5 rounded-md hover:bg-orange-200"
-        >
-          Rouvrir
-        </button>
+        </div>
       </div>
     </div>
 
-    <!-- Bannière erreur globale -->
+    <!-- Bannière erreur -->
     <div
       v-if="store.error && !showValidateModal && !showReopenModal"
-      class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700"
+      class="mb-6 flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700"
     >
-      {{ store.error }}
+      <span class="font-medium">Erreur :</span> {{ store.error }}
     </div>
 
-    <div v-if="store.loading" class="text-gray-500">Chargement…</div>
+    <!-- Bannière lecture seule -->
+    <div
+      v-if="store.currentReport && !store.currentReport.editable && authStore.isStudent"
+      class="mb-6 flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800"
+    >
+      Ce rapport est en lecture seule — statut : <strong class="ml-1">{{ STATUS_LABELS[store.currentReport.status] }}</strong>
+    </div>
+
+    <!-- Chargement -->
+    <div v-if="store.loading" class="space-y-4">
+      <div class="h-64 bg-gray-100 rounded-xl animate-pulse" />
+      <div class="h-40 bg-gray-100 rounded-xl animate-pulse" />
+    </div>
 
     <template v-else-if="store.currentReport">
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Formulaire sections + fichiers (2/3) -->
-        <div class="lg:col-span-2 space-y-6">
+
+        <!-- Contenu principal (2/3) -->
+        <div class="lg:col-span-2 space-y-4">
+
+          <!-- Activités du mois -->
+          <div
+            v-if="schoolSection?.content || companySection?.content"
+            class="bg-white rounded-xl border border-gray-200 overflow-hidden"
+          >
+            <div class="px-5 py-3.5 border-b border-gray-100">
+              <h2 class="text-sm font-semibold text-gray-700">Activités du mois</h2>
+            </div>
+            <div class="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div v-if="schoolSection?.content" class="border-l-4 border-blue-400 pl-3">
+                <p class="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-1">École</p>
+                <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{{ schoolSection.content }}</p>
+              </div>
+              <div v-if="companySection?.content" class="border-l-4 border-emerald-400 pl-3">
+                <p class="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-1">Entreprise</p>
+                <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{{ companySection.content }}</p>
+              </div>
+            </div>
+          </div>
+
           <ReportReportForm
             :sections="store.currentReport.sections"
             :editable="store.canEdit && authStore.isStudent"
@@ -60,66 +90,45 @@
             @save="handleSave"
             @validate="handleValidate"
           />
-
-          <!-- Fichiers joints -->
-          <div class="bg-white rounded-lg border border-gray-200 p-5">
-            <h2 class="text-sm font-semibold text-gray-700 mb-4">Fichiers joints</h2>
-
-            <ReportReportFileList
-              ref="fileListRef"
-              :report-id="reportId"
-              :editable="store.canEdit && authStore.isStudent"
-              class="mb-4"
-            />
-
-            <ReportReportFileUploader
-              v-if="store.canEdit && authStore.isStudent"
-              :report-id="reportId"
-              @uploaded="fileListRef?.refresh()"
-            />
-          </div>
         </div>
 
-        <!-- Sidebar : timeline des validations + historique + commentaires (1/3) -->
-        <div class="space-y-6">
-          <!-- Timeline des validations -->
-          <div class="bg-white rounded-lg border border-gray-200 p-5">
-            <h2 class="text-sm font-semibold text-gray-700 mb-4">Avancement des validations</h2>
-            <ValidationTimeline :report="store.currentReport" />
+        <!-- Sidebar (1/3) -->
+        <div class="space-y-4">
+
+          <!-- Retours des encadrants -->
+          <div
+            v-if="store.currentReport.trainerNote || store.currentReport.tutorNote"
+            class="bg-white rounded-xl border border-gray-200 overflow-hidden"
+          >
+            <div class="px-5 py-3.5 border-b border-gray-100">
+              <h2 class="text-sm font-semibold text-gray-700">Retours des encadrants</h2>
+            </div>
+            <div class="p-4 space-y-4">
+              <div v-if="store.currentReport.trainerNote" class="border-l-4 border-indigo-400 pl-3">
+                <p class="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-1">Formateur</p>
+                <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{{ store.currentReport.trainerNote }}</p>
+              </div>
+              <div v-if="store.currentReport.tutorNote" class="border-l-4 border-violet-400 pl-3">
+                <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Tuteur entreprise</p>
+                <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{{ store.currentReport.tutorNote }}</p>
+              </div>
+            </div>
           </div>
 
-          <!-- Historique des statuts -->
-          <div class="bg-white rounded-lg border border-gray-200 p-5">
-            <h2 class="text-sm font-semibold text-gray-700 mb-4">Historique des statuts</h2>
-            <ReportReportTimeline
-              v-if="store.currentReport.statusLogs.length"
-              :logs="store.currentReport.statusLogs"
-            />
-            <p v-else class="text-sm text-gray-400 italic">Aucun historique.</p>
-          </div>
-
-          <!-- Commentaires internes — TRAINER, TUTOR, ADMIN uniquement -->
+          <!-- Commentaires internes -->
           <ReportInternalCommentPanel
             v-if="!authStore.isStudent"
             :report-id="reportId"
           />
         </div>
       </div>
-
-      <!-- Bannière si rapport non modifiable -->
-      <div
-        v-if="!store.currentReport.editable && authStore.isStudent"
-        class="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800"
-      >
-        Ce rapport est en lecture seule (statut : <strong>{{ STATUS_LABELS[store.currentReport.status] }}</strong>).
-      </div>
     </template>
 
-    <!-- Modal validation (formateur / tuteur) -->
-    <div v-if="showValidateModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
-        <h3 class="text-base font-semibold text-gray-800 mb-1">Valider le rapport</h3>
-        <p class="text-sm text-gray-500 mb-4">
+    <!-- Modal : valider -->
+    <div v-if="showValidateModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-semibold text-gray-900 mb-1">Valider le rapport</h3>
+        <p class="text-sm text-gray-500 mb-5">
           {{ authStore.isTrainer
             ? 'Le rapport sera transmis au tuteur entreprise.'
             : 'Le rapport sera marqué comme terminé.' }}
@@ -127,21 +136,22 @@
         <textarea
           v-model="validateComment"
           rows="3"
-          placeholder="Commentaire interne (optionnel, max 5000 caractères)"
-          class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 mb-3"
+          placeholder="Note pour l'étudiant (optionnel)"
+          class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent resize-none mb-1"
         />
-        <p v-if="validateError" class="mb-3 text-sm text-red-600">{{ validateError }}</p>
+        <p class="text-xs text-gray-400 mb-4">Visible par l'étudiant après validation</p>
+        <div v-if="validateError" class="mb-4 text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{{ validateError }}</div>
         <div class="flex gap-3">
           <button
             @click="handleValidateConfirm"
             :disabled="store.saving"
-            class="bg-green-600 text-white px-4 py-2 rounded-md text-sm hover:bg-green-700 disabled:opacity-50"
+            class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-xl text-sm transition-colors disabled:opacity-50"
           >
-            {{ store.saving ? 'Validation…' : 'Confirmer la validation' }}
+            {{ store.saving ? 'Validation…' : 'Confirmer' }}
           </button>
           <button
             @click="closeValidateModal"
-            class="text-gray-500 text-sm px-4 py-2 hover:text-gray-700"
+            class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 rounded-xl text-sm transition-colors"
           >
             Annuler
           </button>
@@ -149,32 +159,6 @@
       </div>
     </div>
 
-    <!-- Modal réouverture -->
-    <div v-if="showReopenModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
-        <h3 class="text-base font-semibold text-gray-800 mb-3">Rouvrir le rapport</h3>
-        <p class="text-sm text-gray-500 mb-4">
-          L'étudiant pourra à nouveau modifier son rapport.
-        </p>
-        <textarea
-          v-model="reopenNote"
-          rows="3"
-          placeholder="Motif de réouverture (optionnel)"
-          class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 mb-4"
-        />
-        <div class="flex gap-3">
-          <button @click="handleReopen"
-            :disabled="store.saving"
-            class="bg-orange-600 text-white px-4 py-2 rounded-md text-sm hover:bg-orange-700 disabled:opacity-50">
-            Confirmer la réouverture
-          </button>
-          <button @click="showReopenModal = false"
-            class="text-gray-500 text-sm px-4 py-2 hover:text-gray-700">
-            Annuler
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -191,20 +175,12 @@ const store = useReportStore()
 const route = useRoute()
 
 const reportId = Number(route.params.id)
-const showReopenModal = ref(false)
-const reopenNote = ref('')
-const fileListRef = ref<{ refresh: () => void } | null>(null)
-
 const showValidateModal = ref(false)
 const validateComment = ref('')
 const validateError = ref('')
 
-const canReopen = computed(() =>
-  (authStore.isTrainer || authStore.isAdmin) &&
-  store.currentReport?.status !== undefined &&
-  ['STUDENT_VALIDATED', 'AUTO_VALIDATED', 'TRAINER_VALIDATED']
-    .includes(store.currentReport.status)
-)
+const schoolSection = computed(() => store.currentReport?.sections.find(s => s.sectionType === 'SCHOOL_ACTIVITIES'))
+const companySection = computed(() => store.currentReport?.sections.find(s => s.sectionType === 'COMPANY_ACTIVITIES'))
 
 const canValidateAsTrainerOrTutor = computed(() => {
   const status = store.currentReport?.status
@@ -221,21 +197,15 @@ const handleSave = async (sections: SectionUpdate[]) => {
 }
 
 const handleValidate = async () => {
-  const ok = await store.validateReport(reportId, 'student')
-  if (!ok) {
-    // store.error est affiché par la bannière globale
-  }
+  await store.validateReport(reportId, 'student')
 }
 
 const handleValidateConfirm = async () => {
   validateError.value = ''
   const role = authStore.isTrainer ? 'trainer' : 'tutor'
   const ok = await store.validateReport(reportId, role, validateComment.value || undefined)
-  if (ok) {
-    closeValidateModal()
-  } else {
-    validateError.value = store.error ?? 'Erreur lors de la validation'
-  }
+  if (ok) closeValidateModal()
+  else validateError.value = store.error ?? 'Erreur lors de la validation'
 }
 
 const closeValidateModal = () => {
@@ -244,9 +214,4 @@ const closeValidateModal = () => {
   validateError.value = ''
 }
 
-const handleReopen = async () => {
-  await store.reopenReport(reportId, reopenNote.value || undefined)
-  showReopenModal.value = false
-  reopenNote.value = ''
-}
 </script>

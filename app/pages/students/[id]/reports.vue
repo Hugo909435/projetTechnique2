@@ -25,17 +25,27 @@
         v-for="report in store.reports"
         :key="report.id"
         :to="`/reports/${report.id}`"
-        class="flex items-center justify-between bg-white rounded-lg border border-gray-200 px-5 py-4 hover:border-blue-300 hover:shadow-sm transition-all"
+        class="block bg-white rounded-lg border border-gray-200 px-5 py-4 hover:border-blue-300 hover:shadow-sm transition-all"
       >
-        <div>
-          <p class="font-semibold text-gray-800 capitalize">{{ report.monthLabel }}</p>
-          <p class="text-xs text-gray-400 mt-0.5">
-            Mis à jour : {{ formatDate(report.updatedAt) }}
-          </p>
+        <div class="flex items-center justify-between mb-2">
+          <div>
+            <p class="font-semibold text-gray-800 capitalize">{{ report.monthLabel }}</p>
+            <p class="text-xs text-gray-400 mt-0.5">Mis à jour : {{ formatDate(report.updatedAt) }}</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <ReportStatusBadge :status="report.status" />
+            <span class="text-gray-400 text-sm">→</span>
+          </div>
         </div>
-        <div class="flex items-center gap-3">
-          <ReportReportStatusBadge :status="report.status" />
-          <span class="text-gray-400 text-sm">→</span>
+        <div v-if="report.schoolActivitiesPreview || report.companyActivitiesPreview" class="grid grid-cols-2 gap-3 mt-2">
+          <div v-if="report.schoolActivitiesPreview" class="rounded-md bg-blue-50 border border-blue-100 px-3 py-2">
+            <p class="text-xs font-medium text-blue-700 mb-0.5">🎓 École</p>
+            <p class="text-xs text-gray-600 line-clamp-2">{{ report.schoolActivitiesPreview }}</p>
+          </div>
+          <div v-if="report.companyActivitiesPreview" class="rounded-md bg-green-50 border border-green-100 px-3 py-2">
+            <p class="text-xs font-medium text-green-700 mb-0.5">🏢 Entreprise</p>
+            <p class="text-xs text-gray-600 line-clamp-2">{{ report.companyActivitiesPreview }}</p>
+          </div>
         </div>
       </NuxtLink>
     </div>

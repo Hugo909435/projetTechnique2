@@ -83,6 +83,20 @@
         </dl>
       </div>
 
+      <!-- Lien rapports -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6 flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-semibold text-gray-700">Rapports mensuels</h2>
+          <p class="text-sm text-gray-500 mt-0.5">Consulter ce que l'étudiant a fait à l'école et en entreprise.</p>
+        </div>
+        <NuxtLink
+          :to="`/students/${studentId}/reports`"
+          class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm font-medium"
+        >
+          Voir les rapports →
+        </NuxtLink>
+      </div>
+
       <!-- Formateur (lecture seule) -->
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h2 class="text-base font-semibold text-gray-700 mb-4">Formateur école</h2>
