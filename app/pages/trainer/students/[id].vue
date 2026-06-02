@@ -9,6 +9,10 @@
 
     <div v-if="loading" class="text-gray-500">Chargement…</div>
 
+    <div v-else-if="error" class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 text-sm">
+      {{ error }}
+    </div>
+
     <template v-else-if="student">
       <!-- Profil étudiant -->
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
@@ -97,16 +101,6 @@
         </NuxtLink>
       </div>
 
-      <!-- Formateur (lecture seule) -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 class="text-base font-semibold text-gray-700 mb-4">Formateur école</h2>
-        <p v-if="!student.trainer" class="text-gray-400 italic text-sm">Aucun formateur assigné.</p>
-        <dl v-else class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
-          <InfoRow label="Prénom" :value="student.trainer.firstName" />
-          <InfoRow label="Nom"    :value="student.trainer.lastName" />
-          <InfoRow label="Email"  :value="student.trainer.email" />
-        </dl>
-      </div>
     </template>
   </div>
 </template>
@@ -126,6 +120,7 @@ const { students: studentsApi } = useApi()
 const studentId = Number(route.params.id)
 const student = ref<any>(null)
 const loading = ref(true)
+const error = ref<string | null>(null)
 const editMode = ref(false)
 const editTutorMode = ref(false)
 const saving = ref(false)
@@ -159,6 +154,11 @@ onMounted(async () => {
         email: res.data.tutor.email ?? '',
       })
     }
+  } catch (e: any) {
+    const status = e?.response?.status
+    if (status === 403) error.value = 'Accès interdit : vous n\'êtes pas le formateur de cet étudiant.'
+    else if (status === 404) error.value = 'Étudiant introuvable.'
+    else error.value = 'Impossible de charger les données de l\'étudiant.'
   } finally {
     loading.value = false
   }

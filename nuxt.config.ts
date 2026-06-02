@@ -6,6 +6,9 @@ export default defineNuxtConfig({
     '@nuxtjs/tailwindcss',
     '@pinia/nuxt',
   ],
+  components: [
+    { path: '~/components', pathPrefix: false },
+  ],
   runtimeConfig: {
     public: {
       apiBase: 'http://localhost:8080/api',
