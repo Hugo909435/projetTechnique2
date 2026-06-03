@@ -27,6 +27,26 @@
         <template v-if="form.role === 'STUDENT'">
           <Field label="N° étudiant" v-model="form.studentNumber" />
           <Field label="Entreprise" v-model="form.companyName" />
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Formateur</label>
+            <select v-model="form.trainerId" class="input">
+              <option :value="null">— Aucun —</option>
+              <option v-for="t in trainers" :key="t.id" :value="t.id">
+                {{ t.firstName }} {{ t.lastName }}
+              </option>
+            </select>
+            <p v-if="!trainers.length" class="text-xs text-gray-400 mt-1">Aucun formateur enregistré</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tuteur entreprise</label>
+            <select v-model="form.tutorId" class="input">
+              <option :value="null">— Aucun —</option>
+              <option v-for="t in tutors" :key="t.id" :value="t.id">
+                {{ t.firstName }} {{ t.lastName }}
+              </option>
+            </select>
+            <p v-if="!tutors.length" class="text-xs text-gray-400 mt-1">Aucun tuteur enregistré</p>
+          </div>
         </template>
         <div v-if="formError" class="sm:col-span-2 text-sm text-red-600">{{ formError }}</div>
         <div class="sm:col-span-2 flex gap-3">
@@ -43,15 +63,104 @@
 
     <!-- Filtres -->
     <div class="flex gap-2 mb-4">
-      <button v-for="f in filters" :key="f.value" @click="activeFilter = f.value"
+      <button v-for="f in filters" :key="f.value" @click="setFilter(f.value)"
         :class="['px-3 py-1.5 rounded-md text-sm', activeFilter === f.value
           ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50']">
         {{ f.label }}
+        <span class="ml-1 opacity-70">({{ filterCount(f.value) }})</span>
       </button>
     </div>
 
-    <div v-if="loading" class="text-gray-500">Chargement…</div>
+    <div v-if="loading" class="text-gray-500 py-8 text-center">Chargement…</div>
 
+    <!-- Vue Étudiants enrichie -->
+    <div v-else-if="activeFilter === 'STUDENT'" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th class="text-left px-6 py-3 font-medium text-gray-600">Étudiant</th>
+            <th class="text-left px-6 py-3 font-medium text-gray-600">Email</th>
+            <th class="text-left px-6 py-3 font-medium text-gray-600">Entreprise</th>
+            <th class="text-left px-6 py-3 font-medium text-gray-600">Formateur</th>
+            <th class="text-left px-6 py-3 font-medium text-gray-600">Tuteur entreprise</th>
+            <th class="text-center px-6 py-3 font-medium text-gray-600">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <template v-for="s in studentProfiles" :key="s.id">
+            <tr class="hover:bg-gray-50" :class="{ 'bg-blue-50': assigningStudent?.id === s.id }">
+              <td class="px-6 py-4 font-medium text-gray-800">{{ s.firstName }} {{ s.lastName }}</td>
+              <td class="px-6 py-4 text-gray-600">{{ s.email }}</td>
+              <td class="px-6 py-4 text-gray-500">{{ s.companyName ?? '—' }}</td>
+              <td class="px-6 py-4">
+                <span v-if="s.trainer" class="text-blue-700 font-medium">
+                  {{ s.trainer.firstName }} {{ s.trainer.lastName }}
+                </span>
+                <span v-else class="text-gray-400 italic text-xs">Non assigné</span>
+              </td>
+              <td class="px-6 py-4">
+                <span v-if="s.tutor" class="text-purple-700 font-medium">
+                  {{ s.tutor.firstName }} {{ s.tutor.lastName }}
+                </span>
+                <span v-else class="text-gray-400 italic text-xs">Non assigné</span>
+              </td>
+              <td class="px-6 py-4 text-center">
+                <div class="flex gap-3 justify-center">
+                  <button @click="toggleAssign(s)"
+                    class="text-blue-600 hover:underline text-xs font-medium">
+                    {{ assigningStudent?.id === s.id ? 'Fermer' : 'Assigner' }}
+                  </button>
+                  <button @click="deleteUser(s.id)" class="text-red-500 hover:underline text-xs">
+                    Supprimer
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <!-- Panel d'assignation inline -->
+            <tr v-if="assigningStudent?.id === s.id" class="bg-blue-50">
+              <td colspan="6" class="px-6 py-4 border-t border-blue-100">
+                <div class="flex flex-wrap gap-4 items-end">
+                  <div class="min-w-52">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Formateur</label>
+                    <select v-model="assignForm.trainerId" class="input">
+                      <option :value="null">— Aucun —</option>
+                      <option v-for="t in trainers" :key="t.id" :value="t.id">
+                        {{ t.firstName }} {{ t.lastName }}
+                      </option>
+                    </select>
+                  </div>
+                  <div class="min-w-52">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Tuteur entreprise</label>
+                    <select v-model="assignForm.tutorId" class="input">
+                      <option :value="null">— Aucun —</option>
+                      <option v-for="t in tutors" :key="t.id" :value="t.id">
+                        {{ t.firstName }} {{ t.lastName }}
+                      </option>
+                    </select>
+                  </div>
+                  <div class="flex gap-2">
+                    <button @click="submitAssign" :disabled="assignSubmitting"
+                      class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 text-xs">
+                      {{ assignSubmitting ? 'Enregistrement…' : 'Enregistrer' }}
+                    </button>
+                    <button @click="assigningStudent = null"
+                      class="text-gray-500 text-xs px-3 py-2 hover:text-gray-700">
+                      Annuler
+                    </button>
+                  </div>
+                  <p v-if="assignError" class="w-full text-sm text-red-600">{{ assignError }}</p>
+                </div>
+              </td>
+            </tr>
+          </template>
+          <tr v-if="!studentProfiles.length">
+            <td colspan="6" class="px-6 py-8 text-center text-gray-400 italic">Aucun étudiant</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Vue standard (ALL / TRAINER / TUTOR) -->
     <div v-else class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
       <table class="w-full text-sm">
         <thead class="bg-gray-50 border-b border-gray-200">
@@ -74,11 +183,13 @@
             </td>
             <td class="px-6 py-4 text-gray-500">{{ u.phone ?? '—' }}</td>
             <td class="px-6 py-4 text-center">
-              <button @click="deleteUser(u.id)"
-                class="text-red-500 hover:underline text-xs">
+              <button @click="deleteUser(u.id)" class="text-red-500 hover:underline text-xs">
                 Supprimer
               </button>
             </td>
+          </tr>
+          <tr v-if="!filteredUsers.length">
+            <td colspan="5" class="px-6 py-8 text-center text-gray-400 italic">Aucun utilisateur</td>
           </tr>
         </tbody>
       </table>
@@ -89,14 +200,18 @@
 <script setup lang="ts">
 definePageMeta({ middleware: ['admin'] })
 
-const { users: usersApi } = useApi()
+const { users: usersApi, students: studentsApi } = useApi()
 
 const users = ref<any[]>([])
+const studentProfiles = ref<any[]>([])
 const loading = ref(true)
 const showForm = ref(false)
 const submitting = ref(false)
 const formError = ref('')
 const activeFilter = ref('ALL')
+const assigningStudent = ref<any>(null)
+const assignSubmitting = ref(false)
+const assignError = ref('')
 
 const filters = [
   { label: 'Tous',       value: 'ALL'     },
@@ -108,22 +223,46 @@ const filters = [
 const form = reactive({
   firstName: '', lastName: '', email: '', password: '',
   phone: '', role: 'STUDENT', studentNumber: '', companyName: '',
+  trainerId: null as number | null,
+  tutorId: null as number | null,
 })
 
-const filteredUsers = computed(() =>
-  activeFilter.value === 'ALL'
-    ? users.value
-    : users.value.filter((u) => u.role === activeFilter.value)
-)
+const assignForm = reactive({
+  trainerId: null as number | null,
+  tutorId: null as number | null,
+})
+
+const trainers = computed(() => users.value.filter(u => u.role === 'TRAINER'))
+const tutors = computed(() => users.value.filter(u => u.role === 'TUTOR'))
+
+const filteredUsers = computed(() => {
+  if (activeFilter.value === 'ALL') return users.value
+  return users.value.filter(u => u.role === activeFilter.value)
+})
+
+const filterCount = (filter: string) => {
+  if (filter === 'ALL') return users.value.length
+  if (filter === 'STUDENT') return studentProfiles.value.length
+  return users.value.filter(u => u.role === filter).length
+}
 
 onMounted(async () => {
   try {
-    const res = await usersApi.list()
-    users.value = res.data.filter((u: any) => u.role !== 'ADMIN')
+    const [usersRes, studentsRes] = await Promise.all([
+      usersApi.list(),
+      studentsApi.list(),
+    ])
+    users.value = usersRes.data.filter((u: any) => u.role !== 'ADMIN')
+    studentProfiles.value = studentsRes.data
   } finally {
     loading.value = false
   }
 })
+
+const setFilter = (f: string) => {
+  activeFilter.value = f
+  assigningStudent.value = null
+}
 
 const openCreate = () => {
   showForm.value = true
@@ -131,6 +270,7 @@ const openCreate = () => {
   Object.assign(form, {
     firstName: '', lastName: '', email: '', password: '',
     phone: '', role: 'STUDENT', studentNumber: '', companyName: '',
+    trainerId: null, tutorId: null,
   })
 }
 
@@ -138,8 +278,19 @@ const submitCreate = async () => {
   submitting.value = true
   formError.value = ''
   try {
-    const res = await usersApi.create({ ...form })
+    const payload: any = { ...form }
+    if (form.role !== 'STUDENT') {
+      delete payload.studentNumber
+      delete payload.companyName
+      delete payload.trainerId
+      delete payload.tutorId
+    }
+    const res = await usersApi.create(payload)
     users.value.push(res.data)
+    if (form.role === 'STUDENT') {
+      const sRes = await studentsApi.list()
+      studentProfiles.value = sRes.data
+    }
     showForm.value = false
   } catch (err: any) {
     formError.value = err.response?.data?.message ?? 'Erreur lors de la création'
@@ -151,7 +302,43 @@ const submitCreate = async () => {
 const deleteUser = async (id: number) => {
   if (!confirm('Supprimer cet utilisateur ?')) return
   await usersApi.delete(id)
-  users.value = users.value.filter((u) => u.id !== id)
+  users.value = users.value.filter(u => u.id !== id)
+  studentProfiles.value = studentProfiles.value.filter(s => s.id !== id)
+}
+
+const toggleAssign = (student: any) => {
+  if (assigningStudent.value?.id === student.id) {
+    assigningStudent.value = null
+    return
+  }
+  assigningStudent.value = student
+  assignError.value = ''
+  assignForm.trainerId = student.trainer?.id ?? null
+  assignForm.tutorId = student.tutor?.id ?? null
+}
+
+const submitAssign = async () => {
+  if (!assigningStudent.value) return
+  assignSubmitting.value = true
+  assignError.value = ''
+  try {
+    const studentId = assigningStudent.value.id
+    const promises: Promise<any>[] = []
+    if (assignForm.trainerId && assignForm.trainerId !== (assigningStudent.value.trainer?.id ?? null)) {
+      promises.push(studentsApi.assignTrainer(studentId, assignForm.trainerId))
+    }
+    if (assignForm.tutorId && assignForm.tutorId !== (assigningStudent.value.tutor?.id ?? null)) {
+      promises.push(studentsApi.assignTutor(studentId, assignForm.tutorId))
+    }
+    await Promise.all(promises)
+    const sRes = await studentsApi.list()
+    studentProfiles.value = sRes.data
+    assigningStudent.value = null
+  } catch (err: any) {
+    assignError.value = err.response?.data?.message ?? "Erreur lors de l'assignation"
+  } finally {
+    assignSubmitting.value = false
+  }
 }
 
 const roleLabel = (role: string) => ({
