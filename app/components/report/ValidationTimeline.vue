@@ -43,7 +43,7 @@ const steps = computed(() => {
   const trainerDone = ['TRAINER_VALIDATED', 'TUTOR_VALIDATED', 'COMPLETED'].includes(r.status)
   const tutorDone   = ['TUTOR_VALIDATED', 'COMPLETED'].includes(r.status)
 
-  const studentActive = r.status === 'DRAFT' || r.status === 'REOPENED'
+  const studentActive = r.status === 'DRAFT'
   const trainerActive = r.status === 'STUDENT_VALIDATED' || r.status === 'AUTO_VALIDATED'
   const tutorActive   = r.status === 'TRAINER_VALIDATED'
 

@@ -5,15 +5,10 @@ export type ReportStatus =
   | 'TRAINER_VALIDATED'
   | 'TUTOR_VALIDATED'
   | 'COMPLETED'
-  | 'REOPENED'
 
 export type SectionType =
   | 'SCHOOL_ACTIVITIES'
   | 'COMPANY_ACTIVITIES'
-  | 'SKILLS'
-  | 'DIFFICULTIES'
-  | 'SOLUTIONS'
-  | 'OBJECTIVES'
   | 'FREE_COMMENT'
 
 export interface ReportSection {
@@ -47,6 +42,7 @@ export interface ReportSummary {
 
 export interface Report extends ReportSummary {
   editable: boolean
+  studentCanEditAndReset: boolean
   sections: ReportSection[]
   statusLogs: ReportStatusLog[]
   studentValidatedAt: string | null
@@ -66,22 +62,17 @@ export interface SectionUpdate {
 // ── Constantes d'affichage ─────────────────────────────────────────────────
 
 export const STATUS_LABELS: Record<ReportStatus, string> = {
-  DRAFT:             'En cours',
-  STUDENT_VALIDATED: 'À vérifier par le formateur',
-  AUTO_VALIDATED:    'À vérifier par le formateur',
-  TRAINER_VALIDATED: 'À vérifier par le tuteur',
-  TUTOR_VALIDATED:   'Terminé',
+  DRAFT:             'Brouillon',
+  STUDENT_VALIDATED: 'À vérifier par le tuteur',
+  AUTO_VALIDATED:    'À vérifier par le tuteur',
+  TUTOR_VALIDATED:   'À vérifier par le formateur',
+  TRAINER_VALIDATED: 'Terminé',
   COMPLETED:         'Terminé',
-  REOPENED:          'En cours',
 }
 
 export const SECTION_LABELS: Record<SectionType, string> = {
   SCHOOL_ACTIVITIES:  'Activités réalisées à l\'école',
   COMPANY_ACTIVITIES: 'Activités réalisées en entreprise',
-  SKILLS:             'Compétences développées',
-  DIFFICULTIES:       'Difficultés rencontrées',
-  SOLUTIONS:          'Solutions apportées',
-  OBJECTIVES:         'Objectifs pour le mois suivant',
   FREE_COMMENT:       'Commentaire libre',
 }
 
@@ -89,8 +80,7 @@ export const STATUS_COLORS: Record<ReportStatus, string> = {
   DRAFT:             'bg-gray-100 text-gray-500',
   STUDENT_VALIDATED: 'bg-orange-100 text-orange-700',
   AUTO_VALIDATED:    'bg-orange-100 text-orange-700',
-  TRAINER_VALIDATED: 'bg-indigo-100 text-indigo-700',
-  TUTOR_VALIDATED:   'bg-green-600 text-white',
+  TUTOR_VALIDATED:   'bg-indigo-100 text-indigo-700',
+  TRAINER_VALIDATED: 'bg-green-600 text-white',
   COMPLETED:         'bg-green-600 text-white',
-  REOPENED:          'bg-gray-100 text-gray-500',
 }

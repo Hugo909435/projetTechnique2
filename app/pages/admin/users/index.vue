@@ -11,11 +11,11 @@
     <div v-if="showForm" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
       <h2 class="text-base font-semibold text-gray-700 mb-4">Créer un utilisateur</h2>
       <form @submit.prevent="submitCreate" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <UiField label="Prénom *" v-model="form.firstName" />
-        <UiField label="Nom *" v-model="form.lastName" />
-        <UiField label="Email *" v-model="form.email" type="email" />
-        <UiField label="Mot de passe *" v-model="form.password" type="password" />
-        <UiField label="Téléphone" v-model="form.phone" />
+        <Field label="Prénom *" v-model="form.firstName" />
+        <Field label="Nom *" v-model="form.lastName" />
+        <Field label="Email *" v-model="form.email" type="email" />
+        <Field label="Mot de passe *" v-model="form.password" type="password" />
+        <Field label="Téléphone" v-model="form.phone" />
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Rôle *</label>
           <select v-model="form.role" class="input">
@@ -25,8 +25,8 @@
           </select>
         </div>
         <template v-if="form.role === 'STUDENT'">
-          <UiField label="N° étudiant" v-model="form.studentNumber" />
-          <UiField label="Entreprise" v-model="form.companyName" />
+          <Field label="N° étudiant" v-model="form.studentNumber" />
+          <Field label="Entreprise" v-model="form.companyName" />
         </template>
         <div v-if="formError" class="sm:col-span-2 text-sm text-red-600">{{ formError }}</div>
         <div class="sm:col-span-2 flex gap-3">

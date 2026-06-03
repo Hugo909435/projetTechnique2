@@ -8,7 +8,7 @@
     <!-- ── ADMIN ── -->
     <template v-if="authStore.isAdmin">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <DashboardCard title="Utilisateurs" icon="👥" to="/admin/users" description="Gérer tous les comptes" />
+        <DashboardCard title="Utilisateurs" to="/admin/users" description="Gérer tous les comptes" />
       </div>
       <h2 class="text-base font-semibold text-gray-800 mb-3">Rapports par élève</h2>
       <template v-if="studentsLoading">
@@ -54,7 +54,7 @@
     <!-- ── TRAINER ── -->
     <template v-else-if="authStore.isTrainer">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <DashboardCard title="Mes étudiants" icon="🎓" to="/trainer/students" description="Suivre les rapports de vos étudiants" />
+        <DashboardCard title="Mes étudiants" to="/trainer/students" description="Suivre les rapports de vos étudiants" />
       </div>
 
       <div class="mb-8">
@@ -124,7 +124,7 @@
     <!-- ── TUTOR ── -->
     <template v-else-if="authStore.isTutor">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <DashboardCard title="Mes alternants" icon="🏢" to="/trainer/students" description="Consulter les rapports de vos alternants" />
+        <DashboardCard title="Mes alternants" to="/trainer/students" description="Consulter les rapports de vos alternants" />
       </div>
 
       <div class="mb-8">

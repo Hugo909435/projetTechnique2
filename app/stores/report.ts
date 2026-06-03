@@ -9,13 +9,18 @@ export const useReportStore = defineStore('report', {
     loading: false,
     saving: false,
     error: null as string | null,
+    justCreatedId: null as number | null,
   }),
 
   getters: {
-    canEdit:     (state) => state.currentReport?.editable ?? false,
-    isDraft:     (state) => state.currentReport?.status === 'DRAFT',
-    isReopened:  (state) => state.currentReport?.status === 'REOPENED',
-    isCompleted: (state) => state.currentReport?.status === 'COMPLETED',
+    canEdit:         (state) => state.currentReport?.editable ?? false,
+    canEditAndReset: (state) => {
+      const s = state.currentReport?.status
+      return s === 'STUDENT_VALIDATED' || s === 'AUTO_VALIDATED'
+          || s === 'TRAINER_VALIDATED' || s === 'COMPLETED'
+    },
+    isDraft:         (state) => state.currentReport?.status === 'DRAFT',
+    isCompleted:     (state) => state.currentReport?.status === 'COMPLETED',
   },
 
   actions: {
@@ -69,6 +74,7 @@ export const useReportStore = defineStore('report', {
         const { reports } = useApi()
         const res = await reports.create({ year, month })
         this.currentReport = res.data
+        this.justCreatedId = res.data.id as number
         return res.data.id as number
       } catch (e: any) {
         this.error = e.response?.data?.message ?? 'Erreur lors de la création'
@@ -87,20 +93,6 @@ export const useReportStore = defineStore('report', {
         this.currentReport = res.data
       } catch (e: any) {
         this.error = e.response?.data?.message ?? 'Erreur lors de la sauvegarde'
-      } finally {
-        this.saving = false
-      }
-    },
-
-    async reopenReport(id: number, note?: string) {
-      this.saving = true
-      this.error = null
-      try {
-        const { reports } = useApi()
-        const res = await reports.reopen(id, note)
-        this.currentReport = res.data
-      } catch (e: any) {
-        this.error = e.response?.data?.message ?? 'Erreur lors de la réouverture'
       } finally {
         this.saving = false
       }

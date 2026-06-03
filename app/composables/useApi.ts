@@ -62,7 +62,6 @@ export function useApi() {
       get:  (id: number)                     => api.get(`/reports/${id}`),
       create: (data: object)                 => api.post('/reports', data),
       update: (id: number, data: object)     => api.put(`/reports/${id}`, data),
-      reopen: (id: number, note?: string)    => api.post(`/reports/${id}/reopen`, { note }),
       listForStudent: (studentId: number)    => api.get(`/students/${studentId}/reports`),
     },
 

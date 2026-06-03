@@ -13,7 +13,7 @@
           <h1 class="text-2xl font-bold text-gray-900 capitalize leading-tight">
             {{ store.currentReport?.monthLabel ?? 'Rapport' }}
           </h1>
-          <p v-if="!authStore.isStudent && store.currentReport" class="text-sm text-gray-500 mt-1">
+          <p v-if="!isStudent && store.currentReport" class="text-sm text-gray-500 mt-1">
             Étudiant : <span class="font-medium text-gray-700">{{ store.currentReport.studentName }}</span>
           </p>
         </div>
@@ -21,6 +21,7 @@
         <div v-if="store.currentReport" class="flex items-center gap-2 flex-shrink-0">
           <ReportStatusBadge :status="store.currentReport.status" />
 
+          <!-- Valider (formateur / tuteur) -->
           <button
             v-if="canValidateAsTrainerOrTutor"
             @click="showValidateModal = true"
@@ -30,24 +31,51 @@
             Valider le rapport
           </button>
 
+          <!-- Modifier + Valider (étudiant, DRAFT) -->
+          <template v-if="store.currentReport?.editable && isOwner && !editMode">
+            <button
+              @click="editMode = true"
+              class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            >
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
+              </svg>
+              Modifier
+            </button>
+            <button
+              @click="handleValidate"
+              :disabled="store.saving"
+              class="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            >
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+              </svg>
+              Valider
+            </button>
+          </template>
+
+          <!-- Modifier (étudiant, rapport déjà validé — avec reset) -->
+          <button
+            v-if="canEditAndResetValue && isOwner && !editMode"
+            @click="showResetConfirmModal = true"
+            class="inline-flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          >
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
+            </svg>
+            Modifier le rapport
+          </button>
+
         </div>
       </div>
     </div>
 
     <!-- Bannière erreur -->
     <div
-      v-if="store.error && !showValidateModal && !showReopenModal"
+      v-if="store.error && !showValidateModal && !showResetConfirmModal"
       class="mb-6 flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700"
     >
       <span class="font-medium">Erreur :</span> {{ store.error }}
-    </div>
-
-    <!-- Bannière lecture seule -->
-    <div
-      v-if="store.currentReport && !store.currentReport.editable && authStore.isStudent"
-      class="mb-6 flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800"
-    >
-      Ce rapport est en lecture seule — statut : <strong class="ml-1">{{ STATUS_LABELS[store.currentReport.status] }}</strong>
     </div>
 
     <!-- Chargement -->
@@ -56,37 +84,20 @@
       <div class="h-40 bg-gray-100 rounded-xl animate-pulse" />
     </div>
 
-    <template v-else-if="store.currentReport">
+<template v-else-if="store.currentReport">
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         <!-- Contenu principal (2/3) -->
         <div class="lg:col-span-2 space-y-4">
 
-          <!-- Activités du mois -->
-          <div
-            v-if="schoolSection?.content || companySection?.content"
-            class="bg-white rounded-xl border border-gray-200 overflow-hidden"
-          >
-            <div class="px-5 py-3.5 border-b border-gray-100">
-              <h2 class="text-sm font-semibold text-gray-700">Activités du mois</h2>
-            </div>
-            <div class="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div v-if="schoolSection?.content" class="border-l-4 border-blue-400 pl-3">
-                <p class="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-1">École</p>
-                <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{{ schoolSection.content }}</p>
-              </div>
-              <div v-if="companySection?.content" class="border-l-4 border-emerald-400 pl-3">
-                <p class="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-1">Entreprise</p>
-                <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{{ companySection.content }}</p>
-              </div>
-            </div>
-          </div>
-
-          <ReportReportForm
+          <ReportForm
+            ref="reportFormRef"
+            :key="editMode ? 'edit' : 'read'"
             :sections="store.currentReport.sections"
-            :editable="store.canEdit && authStore.isStudent"
+            :editable="editMode && isOwner"
+            :will-reset="canEditAndResetValue && editMode"
             :saving="store.saving"
-            :error="store.canEdit && authStore.isStudent ? store.error : null"
+            :error="editMode && isOwner ? store.error : null"
             @save="handleSave"
             @validate="handleValidate"
           />
@@ -116,22 +127,46 @@
           </div>
 
           <!-- Commentaires internes -->
-          <ReportInternalCommentPanel
-            v-if="!authStore.isStudent"
+          <InternalCommentPanel
+            v-if="!isStudent"
             :report-id="reportId"
           />
         </div>
       </div>
     </template>
 
+    <!-- Modal : confirmer ouverture du mode modification -->
+    <div v-if="showResetConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-semibold text-gray-900 mb-1">Modifier le rapport validé ?</h3>
+        <p class="text-sm text-gray-500 mb-5">
+          Le formateur et le tuteur devront re-valider votre rapport.
+        </p>
+        <div class="flex gap-3">
+          <button
+            @click="confirmEditMode"
+            class="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-medium py-2.5 rounded-xl text-sm transition-colors"
+          >
+            Modifier quand même
+          </button>
+          <button
+            @click="showResetConfirmModal = false"
+            class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 rounded-xl text-sm transition-colors"
+          >
+            Annuler
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Modal : valider -->
     <div v-if="showValidateModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full mx-4">
         <h3 class="text-lg font-semibold text-gray-900 mb-1">Valider le rapport</h3>
         <p class="text-sm text-gray-500 mb-5">
-          {{ authStore.isTrainer
-            ? 'Le rapport sera transmis au tuteur entreprise.'
-            : 'Le rapport sera marqué comme terminé.' }}
+          {{ isTrainer
+            ? 'Le rapport sera marqué comme terminé.'
+            : 'Le rapport sera transmis au formateur.' }}
         </p>
         <textarea
           v-model="validateComment"
@@ -174,35 +209,79 @@ const authStore = useAuthStore()
 const store = useReportStore()
 const route = useRoute()
 
+const { isStudent, isTrainer, isTutor } = storeToRefs(authStore)
+
 const reportId = Number(route.params.id)
 const showValidateModal = ref(false)
 const validateComment = ref('')
 const validateError = ref('')
+const showResetConfirmModal = ref(false)
+const editMode = ref(false)
+const reportFormRef = ref()
 
-const schoolSection = computed(() => store.currentReport?.sections.find(s => s.sectionType === 'SCHOOL_ACTIVITIES'))
-const companySection = computed(() => store.currentReport?.sections.find(s => s.sectionType === 'COMPANY_ACTIVITIES'))
+// Vrai si une modification réinitialisera les validations
+const canEditAndResetValue = computed(() => {
+  const s = store.currentReport?.status
+  return s === 'STUDENT_VALIDATED' || s === 'AUTO_VALIDATED'
+      || s === 'TRAINER_VALIDATED' || s === 'COMPLETED'
+})
+
+// Vrai si l'utilisateur connecté est le propriétaire du rapport
+const isOwner = computed(() => {
+  if (!store.currentReport || !authStore.user) return false
+  return store.currentReport.studentId === authStore.user.id
+})
+
+// Booléen pur pour le prop :editable du formulaire
+const formEditable = computed<boolean>(() => {
+  if (!isOwner.value) return false
+  if (!editMode.value) return false
+  if (store.currentReport?.editable === true) return true
+  if (canEditAndResetValue.value) return true
+  return false
+})
 
 const canValidateAsTrainerOrTutor = computed(() => {
   const status = store.currentReport?.status
   if (!status) return false
-  if (authStore.isTrainer) return status === 'STUDENT_VALIDATED' || status === 'AUTO_VALIDATED'
-  if (authStore.isTutor)   return status === 'TRAINER_VALIDATED'
+  if (isTutor.value)   return status === 'STUDENT_VALIDATED' || status === 'AUTO_VALIDATED'
+  if (isTrainer.value) return status === 'TUTOR_VALIDATED'
   return false
 })
 
-onMounted(() => store.fetchReport(reportId))
+onMounted(async () => {
+  const wasJustCreated = store.justCreatedId === reportId
+  store.justCreatedId = null
+  await store.fetchReport(reportId)
+  if (wasJustCreated && store.currentReport?.editable) {
+    editMode.value = true
+  }
+})
+
+const confirmEditMode = () => {
+  editMode.value = true
+  showResetConfirmModal.value = false
+}
+
+// Réinitialise editMode uniquement lors d'une navigation entre deux rapports différents,
+// pas au chargement initial (où l'id passe par undefined)
+watch(() => store.currentReport?.id, (newId, oldId) => {
+  if (oldId && newId && oldId !== newId) editMode.value = false
+})
 
 const handleSave = async (sections: SectionUpdate[]) => {
   await store.saveReport(reportId, sections)
+  if (!canEditAndResetValue.value) editMode.value = false
 }
 
 const handleValidate = async () => {
   await store.validateReport(reportId, 'student')
+  editMode.value = false
 }
 
 const handleValidateConfirm = async () => {
   validateError.value = ''
-  const role = authStore.isTrainer ? 'trainer' : 'tutor'
+  const role = isTrainer.value ? 'trainer' : 'tutor'
   const ok = await store.validateReport(reportId, role, validateComment.value || undefined)
   if (ok) closeValidateModal()
   else validateError.value = store.error ?? 'Erreur lors de la validation'

@@ -1,8 +1,43 @@
 <template>
   <form @submit.prevent="handleSubmit" novalidate>
+
+    <!-- Barre d'actions sticky -->
+    <div v-if="editable" class="sticky top-4 z-10 mb-6">
+      <div class="bg-white border border-gray-200 rounded-xl shadow-md px-4 py-3 flex items-center justify-between gap-3">
+        <span class="text-sm text-gray-500 hidden sm:block">
+          {{ willReset ? 'Les validations précédentes seront réinitialisées.' : 'Brouillon — non encore validé.' }}
+        </span>
+        <p v-if="error" class="text-sm text-red-600 font-medium">{{ error }}</p>
+        <div class="flex items-center gap-2 ml-auto">
+          <button
+            type="submit"
+            :disabled="saving"
+            class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          >
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            {{ saving ? 'Enregistrement…' : willReset ? 'Enregistrer' : 'Enregistrer le brouillon' }}
+          </button>
+          <button
+            v-if="!willReset"
+            type="button"
+            :disabled="saving"
+            @click="$emit('validate')"
+            class="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          >
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+            </svg>
+            Valider
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Sections -->
-    <div class="space-y-4">
-      <ReportReportSectionEditor
+    <div class="space-y-3">
+      <ReportSectionEditor
         v-for="section in localSections"
         :key="section.sectionType"
         :section="section"
@@ -11,29 +46,6 @@
       />
     </div>
 
-    <!-- Actions -->
-    <div v-if="editable" class="mt-6 flex flex-wrap items-center gap-3">
-      <!-- Sauvegarde -->
-      <button
-        type="submit"
-        :disabled="saving"
-        class="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
-      >
-        {{ saving ? 'Enregistrement…' : 'Enregistrer le brouillon' }}
-      </button>
-
-      <!-- Valider (sera branché au module suivant) -->
-      <button
-        type="button"
-        :disabled="saving"
-        @click="$emit('validate')"
-        class="bg-green-600 text-white px-5 py-2 rounded-md hover:bg-green-700 disabled:opacity-50 text-sm font-medium"
-      >
-        Valider mon rapport
-      </button>
-    </div>
-
-    <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>
   </form>
 </template>
 
@@ -44,6 +56,7 @@ import type { ReportSection, SectionType, SectionUpdate } from '~/types/report'
 const props = defineProps<{
   sections: ReportSection[]
   editable: boolean
+  willReset?: boolean
   saving: boolean
   error: string | null
 }>()
@@ -53,7 +66,6 @@ const emit = defineEmits<{
   validate: []
 }>()
 
-// Copie locale réactive des sections
 const localSections = ref<ReportSection[]>([])
 
 watchEffect(() => {
@@ -76,4 +88,6 @@ const handleSubmit = () => {
   ) as SectionUpdate[]
   emit('save', updates)
 }
+
+defineExpose({ submit: handleSubmit })
 </script>

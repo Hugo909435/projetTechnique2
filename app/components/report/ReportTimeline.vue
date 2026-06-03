@@ -48,7 +48,7 @@ const statusLabel = (s: ReportStatus) => STATUS_LABELS[s] ?? s
 const statusInitial = (s: ReportStatus) => {
   const initials: Record<string, string> = {
     DRAFT: 'B', STUDENT_VALIDATED: 'É', AUTO_VALIDATED: 'A',
-    TRAINER_VALIDATED: 'F', TUTOR_VALIDATED: 'T', COMPLETED: '✓', REOPENED: 'R',
+    TRAINER_VALIDATED: 'F', TUTOR_VALIDATED: 'T', COMPLETED: '✓',
   }
   return initials[s] ?? '?'
 }
