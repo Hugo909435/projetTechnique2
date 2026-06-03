@@ -223,7 +223,7 @@ const reportFormRef = ref()
 const canEditAndResetValue = computed(() => {
   const s = store.currentReport?.status
   return s === 'STUDENT_VALIDATED' || s === 'AUTO_VALIDATED'
-      || s === 'TRAINER_VALIDATED' || s === 'COMPLETED'
+      || s === 'TUTOR_VALIDATED' || s === 'COMPLETED'
 })
 
 // Vrai si l'utilisateur connecté est le propriétaire du rapport
@@ -271,10 +271,14 @@ watch(() => store.currentReport?.id, (newId, oldId) => {
 
 const handleSave = async (sections: SectionUpdate[]) => {
   await store.saveReport(reportId, sections)
-  if (!canEditAndResetValue.value) editMode.value = false
+  if (!store.error && !canEditAndResetValue.value) editMode.value = false
 }
 
-const handleValidate = async () => {
+const handleValidate = async (sections?: SectionUpdate[]) => {
+  if (sections?.length) {
+    await store.saveReport(reportId, sections)
+    if (store.error) return
+  }
   await store.validateReport(reportId, 'student')
   editMode.value = false
 }

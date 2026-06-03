@@ -23,7 +23,7 @@
             v-if="!willReset"
             type="button"
             :disabled="saving"
-            @click="$emit('validate')"
+            @click="$emit('validate', buildUpdates())"
             class="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
           >
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -63,7 +63,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   save:     [sections: SectionUpdate[]]
-  validate: []
+  validate: [sections: SectionUpdate[]]
 }>()
 
 const localSections = ref<ReportSection[]>([])
@@ -82,11 +82,13 @@ const sectionSchema = z.object({
   content:     z.string().default(''),
 })
 
-const handleSubmit = () => {
-  const updates = localSections.value.map((s) =>
+const buildUpdates = (): SectionUpdate[] =>
+  localSections.value.map((s) =>
     sectionSchema.parse({ sectionType: s.sectionType, content: s.content ?? '' })
   ) as SectionUpdate[]
-  emit('save', updates)
+
+const handleSubmit = () => {
+  emit('save', buildUpdates())
 }
 
 defineExpose({ submit: handleSubmit })
