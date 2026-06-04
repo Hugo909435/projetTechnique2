@@ -106,6 +106,10 @@
               </td>
               <td class="px-6 py-4 text-center">
                 <div class="flex gap-3 justify-center">
+                  <button @click="openEdit(s)"
+                    class="text-yellow-600 hover:underline text-xs font-medium">
+                    {{ editingUser?.id === s.id ? 'Fermer' : 'Modifier' }}
+                  </button>
                   <button @click="toggleAssign(s)"
                     class="text-blue-600 hover:underline text-xs font-medium">
                     {{ assigningStudent?.id === s.id ? 'Fermer' : 'Assigner' }}
@@ -152,6 +156,35 @@
                 </div>
               </td>
             </tr>
+            <!-- Panel de modification inline -->
+            <tr v-if="editingUser?.id === s.id" class="bg-yellow-50">
+              <td colspan="6" class="px-6 py-4 border-t border-yellow-100">
+                <div class="flex flex-wrap gap-4 items-end">
+                  <div class="min-w-40">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Prénom</label>
+                    <input v-model="editForm.firstName" class="input" />
+                  </div>
+                  <div class="min-w-40">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Nom</label>
+                    <input v-model="editForm.lastName" class="input" />
+                  </div>
+                  <div class="min-w-40">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Téléphone</label>
+                    <input v-model="editForm.phone" class="input" />
+                  </div>
+                  <div class="flex gap-2">
+                    <button @click="submitEdit" :disabled="editSubmitting"
+                      class="bg-yellow-500 text-white px-4 py-2 rounded-md hover:bg-yellow-600 disabled:opacity-50 text-xs">
+                      {{ editSubmitting ? 'Enregistrement…' : 'Enregistrer' }}
+                    </button>
+                    <button @click="editingUser = null" class="text-gray-500 text-xs px-3 py-2 hover:text-gray-700">
+                      Annuler
+                    </button>
+                  </div>
+                  <p v-if="editError" class="w-full text-sm text-red-600">{{ editError }}</p>
+                </div>
+              </td>
+            </tr>
           </template>
           <tr v-if="!studentProfiles.length">
             <td colspan="6" class="px-6 py-8 text-center text-gray-400 italic">Aucun étudiant</td>
@@ -173,21 +206,56 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
-          <tr v-for="u in filteredUsers" :key="u.id" class="hover:bg-gray-50">
-            <td class="px-6 py-4 font-medium text-gray-800">{{ u.firstName }} {{ u.lastName }}</td>
-            <td class="px-6 py-4 text-gray-600">{{ u.email }}</td>
-            <td class="px-6 py-4">
-              <span :class="['text-xs px-2 py-0.5 rounded font-medium', roleClass(u.role)]">
-                {{ roleLabel(u.role) }}
-              </span>
-            </td>
-            <td class="px-6 py-4 text-gray-500">{{ u.phone ?? '—' }}</td>
-            <td class="px-6 py-4 text-center">
-              <button @click="deleteUser(u.id)" class="text-red-500 hover:underline text-xs">
-                Supprimer
-              </button>
-            </td>
-          </tr>
+          <template v-for="u in filteredUsers" :key="u.id">
+            <tr class="hover:bg-gray-50" :class="{ 'bg-yellow-50': editingUser?.id === u.id }">
+              <td class="px-6 py-4 font-medium text-gray-800">{{ u.firstName }} {{ u.lastName }}</td>
+              <td class="px-6 py-4 text-gray-600">{{ u.email }}</td>
+              <td class="px-6 py-4">
+                <span :class="['text-xs px-2 py-0.5 rounded font-medium', roleClass(u.role)]">
+                  {{ roleLabel(u.role) }}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-gray-500">{{ u.phone ?? '—' }}</td>
+              <td class="px-6 py-4 text-center">
+                <div class="flex gap-3 justify-center">
+                  <button @click="openEdit(u)" class="text-yellow-600 hover:underline text-xs font-medium">
+                    {{ editingUser?.id === u.id ? 'Fermer' : 'Modifier' }}
+                  </button>
+                  <button @click="deleteUser(u.id)" class="text-red-500 hover:underline text-xs">
+                    Supprimer
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr v-if="editingUser?.id === u.id" class="bg-yellow-50">
+              <td colspan="5" class="px-6 py-4 border-t border-yellow-100">
+                <div class="flex flex-wrap gap-4 items-end">
+                  <div class="min-w-40">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Prénom</label>
+                    <input v-model="editForm.firstName" class="input" />
+                  </div>
+                  <div class="min-w-40">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Nom</label>
+                    <input v-model="editForm.lastName" class="input" />
+                  </div>
+                  <div class="min-w-40">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Téléphone</label>
+                    <input v-model="editForm.phone" class="input" />
+                  </div>
+                  <div class="flex gap-2">
+                    <button @click="submitEdit" :disabled="editSubmitting"
+                      class="bg-yellow-500 text-white px-4 py-2 rounded-md hover:bg-yellow-600 disabled:opacity-50 text-xs">
+                      {{ editSubmitting ? 'Enregistrement…' : 'Enregistrer' }}
+                    </button>
+                    <button @click="editingUser = null" class="text-gray-500 text-xs px-3 py-2 hover:text-gray-700">
+                      Annuler
+                    </button>
+                  </div>
+                  <p v-if="editError" class="w-full text-sm text-red-600">{{ editError }}</p>
+                </div>
+              </td>
+            </tr>
+          </template>
           <tr v-if="!filteredUsers.length">
             <td colspan="5" class="px-6 py-8 text-center text-gray-400 italic">Aucun utilisateur</td>
           </tr>
@@ -212,6 +280,16 @@ const activeFilter = ref('ALL')
 const assigningStudent = ref<any>(null)
 const assignSubmitting = ref(false)
 const assignError = ref('')
+
+const editingUser = ref<any>(null)
+const editSubmitting = ref(false)
+const editError = ref('')
+
+const editForm = reactive({
+  firstName: '',
+  lastName: '',
+  phone: '',
+})
 
 const filters = [
   { label: 'Tous',       value: 'ALL'     },
@@ -338,6 +416,37 @@ const submitAssign = async () => {
     assignError.value = err.response?.data?.message ?? "Erreur lors de l'assignation"
   } finally {
     assignSubmitting.value = false
+  }
+}
+
+const openEdit = (user: any) => {
+  if (editingUser.value?.id === user.id) {
+    editingUser.value = null
+    return
+  }
+  editingUser.value = user
+  editError.value = ''
+  editForm.firstName = user.firstName ?? ''
+  editForm.lastName = user.lastName ?? ''
+  editForm.phone = user.phone ?? ''
+}
+
+const submitEdit = async () => {
+  if (!editingUser.value) return
+  editSubmitting.value = true
+  editError.value = ''
+  try {
+    const res = await usersApi.update(editingUser.value.id, { ...editForm })
+    const updated = res.data
+    const idx = users.value.findIndex(u => u.id === updated.id)
+    if (idx !== -1) users.value[idx] = { ...users.value[idx], ...updated }
+    const sIdx = studentProfiles.value.findIndex(s => s.id === updated.id)
+    if (sIdx !== -1) studentProfiles.value[sIdx] = { ...studentProfiles.value[sIdx], ...updated }
+    editingUser.value = null
+  } catch (err: any) {
+    editError.value = err.response?.data?.message ?? 'Erreur lors de la modification'
+  } finally {
+    editSubmitting.value = false
   }
 }
 
