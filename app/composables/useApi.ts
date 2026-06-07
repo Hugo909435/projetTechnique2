@@ -90,6 +90,18 @@ export function useApi() {
       delete: (fileId: number) => api.delete(`/report-files/${fileId}`),
     },
 
+    // ── Visits / Trainer slots ────────────────────────────────────────────────
+    visits: {
+      slots:        ()                   => api.get('/trainer-slots'),
+      tutors:       ()                   => api.get('/trainer-slots/tutors'),
+      createSlot:   (data: object)       => api.post('/trainer-slots', data),
+      deleteSlot:   (id: number)         => api.delete(`/trainer-slots/${id}`),
+      propose:      (id: number, tutorId: number) =>
+        api.put(`/trainer-slots/${id}/propose`, { tutorId }),
+      cancelPropose:(id: number)         => api.delete(`/trainer-slots/${id}/propose`),
+      confirm:      (id: number)         => api.put(`/trainer-slots/${id}/confirm`),
+    },
+
     // ── Validation ────────────────────────────────────────────────────────────
     validation: {
       validateStudent: (id: number) =>

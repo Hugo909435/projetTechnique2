@@ -24,6 +24,10 @@
                 class="text-sm font-medium text-gray-700 hover:text-blue-600">
                 Mes étudiants
               </NuxtLink>
+              <NuxtLink to="/visits"
+                class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                Visites
+              </NuxtLink>
             </template>
 
             <!-- TUTOR -->
@@ -31,6 +35,10 @@
               <NuxtLink to="/trainer/students"
                 class="text-sm font-medium text-gray-700 hover:text-blue-600">
                 Mes étudiants
+              </NuxtLink>
+              <NuxtLink to="/visits"
+                class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                Visites
               </NuxtLink>
             </template>
 
