@@ -46,15 +46,30 @@
         </button>
       </form>
 
-      <details class="mt-6 text-xs text-gray-400">
-        <summary class="cursor-pointer select-none">Comptes de test</summary>
-        <div class="mt-2 space-y-0.5 font-mono">
-          <p>admin@example.com / password123 (Admin)</p>
-          <p>trainer1@example.com / password123 (Formateur)</p>
-          <p>tutor1@example.com / password123 (Tuteur)</p>
-          <p>student1@example.com / password123 (Étudiant)</p>
+      <!-- Connexion rapide (démo) -->
+      <div class="mt-8 pt-5 border-t border-gray-100">
+        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide text-center mb-3">
+          Connexion rapide — démo
+        </p>
+        <div class="space-y-2.5">
+          <div v-for="group in quickAccounts" :key="group.role">
+            <p class="text-[11px] font-medium text-gray-400 mb-1">{{ group.role }}</p>
+            <div class="flex flex-wrap gap-1.5">
+              <button
+                v-for="acc in group.accounts"
+                :key="acc.email"
+                type="button"
+                :disabled="loading"
+                @click="quickLogin(acc.email)"
+                class="text-xs px-2.5 py-1.5 rounded-lg border font-medium transition-colors disabled:opacity-50"
+                :class="group.cls"
+              >
+                {{ acc.label }}
+              </button>
+            </div>
+          </div>
         </div>
-      </details>
+      </div>
     </div>
   </div>
 </template>
@@ -72,6 +87,47 @@ const loginSchema = z.object({
   email: z.string().email('Email invalide'),
   password: z.string().min(1, 'Mot de passe requis'),
 })
+
+const quickAccounts = [
+  {
+    role: 'Admin',
+    cls: 'border-slate-300 text-slate-700 bg-slate-50 hover:bg-slate-100',
+    accounts: [{ email: 'admin@example.com', label: 'Admin' }],
+  },
+  {
+    role: 'Formateurs',
+    cls: 'border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100',
+    accounts: [
+      { email: 'trainer1@example.com', label: 'Jean Dupont' },
+      { email: 'trainer2@example.com', label: 'Sophie Bernard' },
+    ],
+  },
+  {
+    role: 'Tuteurs',
+    cls: 'border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100',
+    accounts: [
+      { email: 'tutor1@example.com', label: 'Pierre Martin' },
+      { email: 'tutor2@example.com', label: 'Marie Leblanc' },
+      { email: 'tutor3@example.com', label: 'Luc Moreau' },
+    ],
+  },
+  {
+    role: 'Étudiants',
+    cls: 'border-green-200 text-green-700 bg-green-50 hover:bg-green-100',
+    accounts: [
+      { email: 'student1@example.com', label: 'Alice Durand' },
+      { email: 'student2@example.com', label: 'Bob Martin' },
+      { email: 'student3@example.com', label: 'Clara Petit' },
+      { email: 'student4@example.com', label: 'David Roux' },
+    ],
+  },
+]
+
+const quickLogin = async (email: string) => {
+  form.email = email
+  form.password = 'password123'
+  await handleLogin()
+}
 
 const form = reactive({ email: '', password: '' })
 const errors = reactive<{ email?: string; password?: string }>({})

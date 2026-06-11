@@ -75,21 +75,6 @@ export function useApi() {
       delete: (commentId: number) => api.delete(`/report-comments/${commentId}`),
     },
 
-    // ── Report files ──────────────────────────────────────────────────────────
-    files: {
-      upload: (reportId: number, file: File) => {
-        const form = new FormData()
-        form.append('file', file)
-        return api.post(`/reports/${reportId}/files`, form, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        })
-      },
-      list: (reportId: number) => api.get(`/reports/${reportId}/files`),
-      download: (fileId: number) =>
-        api.get(`/report-files/${fileId}/download`, { responseType: 'blob' }),
-      delete: (fileId: number) => api.delete(`/report-files/${fileId}`),
-    },
-
     // ── Visits / Trainer slots ────────────────────────────────────────────────
     visits: {
       slots:        ()                   => api.get('/trainer-slots'),

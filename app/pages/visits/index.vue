@@ -200,7 +200,9 @@
                   <span v-else-if="slot.status === 'BOOKED'">✓</span>
                   <span v-else-if="slot.status === 'CANCELLED'">✕</span>
                   {{ formatTime(slot.dateTime) }} · {{ slot.typeLabel }}
-                  <span v-if="slot.status === 'PROPOSED' && slot.proposedToName" class="ml-0.5 opacity-80">· {{ slot.proposedToName.split(' ')[0] }}</span>
+                  <span v-if="slot.status === 'FREE'" class="ml-0.5 opacity-70">· Libre</span>
+                  <span v-else-if="slot.status === 'PROPOSED' && slot.proposedToName" class="ml-0.5 opacity-80">· {{ slot.proposedToName.split(' ')[0] }}</span>
+                  <span v-else-if="slot.status === 'PROPOSED' && !slot.proposedToName" class="ml-0.5 opacity-80">· ?</span>
                   <span v-else-if="slot.status === 'BOOKED' && slot.bookedByName" class="ml-0.5 opacity-80">· {{ slot.bookedByName.split(' ')[0] }}</span>
                   <span v-else-if="slot.status === 'CANCELLED' && slot.proposedToName" class="ml-0.5 opacity-70">· {{ slot.proposedToName.split(' ')[0] }}</span>
                 </div>
@@ -376,7 +378,12 @@ const showCreateModal = ref(false)
 const creating        = ref(false)
 const createError     = ref('')
 const createForm      = reactive({ date: '', time: '09:00', type: 'PRESENTIEL' })
-const todayStr        = new Date().toISOString().split('T')[0]
+
+// Clé YYYY-MM-DD en heure locale (toISOString décale d'un jour en UTC+)
+const localDateKey = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+const todayStr = localDateKey(new Date())
 
 // ── Calendrier mensuel ───────────────────────────────────────────────────────
 const now = new Date()
@@ -423,7 +430,7 @@ const calendarCells = computed(() => {
   // Remplir les créneaux
   for (const slot of slots.value) {
     const key = slot.dateTime.split('T')[0]
-    const cell = cells.find(c => c.date.toISOString().split('T')[0] === key)
+    const cell = cells.find(c => localDateKey(c.date) === key)
     if (cell) cell.slots.push(slot)
   }
   // Trier les créneaux dans chaque cellule
@@ -509,7 +516,7 @@ const openCreate = (day: Date) => {
     return
   }
   actionError.value = ''
-  createForm.date  = day.toISOString().split('T')[0]
+  createForm.date  = localDateKey(day)
   createForm.time  = '09:00'
   createForm.type  = 'PRESENTIEL'
   createError.value = ''
@@ -535,6 +542,7 @@ const submitCreate = async () => {
         await reloadTutors()
       } catch (e: any) {
         actionError.value = e.response?.data?.message ?? 'Créneau créé mais proposition échouée.'
+        await reloadSlots()
       }
     }
   } catch (e: any) {
@@ -546,6 +554,11 @@ const submitCreate = async () => {
 
 const onSlotClick = (slot: any) => {
   actionError.value = ''
+  // Un tuteur est sélectionné + créneau libre → proposition directe (cf. texte d'aide)
+  if (slot.status === 'FREE' && selectedTutor.value) {
+    proposeDirectly(slot)
+    return
+  }
   selectedSlot.value = slot
 }
 
@@ -558,6 +571,7 @@ const proposeDirectly = async (slot: any) => {
     await reloadTutors()
   } catch (e: any) {
     actionError.value = e.response?.data?.message ?? 'Erreur lors de la proposition.'
+    await reloadSlots()
   } finally {
     actioning.value = false
   }
@@ -615,6 +629,10 @@ const updateSlot = (updated: any) => {
 
 const reloadTutors = async () => {
   try { const res = await visits.tutors(); tutors.value = res.data } catch {}
+}
+
+const reloadSlots = async () => {
+  try { const res = await visits.slots(); slots.value = res.data } catch {}
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────

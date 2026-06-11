@@ -88,7 +88,7 @@
         </thead>
         <tbody class="divide-y divide-gray-100">
           <template v-for="s in studentProfiles" :key="s.id">
-            <tr class="hover:bg-gray-50" :class="{ 'bg-blue-50': assigningStudent?.id === s.id }">
+            <tr class="hover:bg-gray-50">
               <td class="px-6 py-4 font-medium text-gray-800">{{ s.firstName }} {{ s.lastName }}</td>
               <td class="px-6 py-4 text-gray-600">{{ s.email }}</td>
               <td class="px-6 py-4 text-gray-500">{{ s.companyName ?? '—' }}</td>
@@ -110,53 +110,13 @@
                     class="text-yellow-600 hover:underline text-xs font-medium">
                     {{ editingUser?.id === s.id ? 'Fermer' : 'Modifier' }}
                   </button>
-                  <button @click="toggleAssign(s)"
-                    class="text-blue-600 hover:underline text-xs font-medium">
-                    {{ assigningStudent?.id === s.id ? 'Fermer' : 'Assigner' }}
-                  </button>
                   <button @click="deleteUser(s.id)" class="text-red-500 hover:underline text-xs">
                     Supprimer
                   </button>
                 </div>
               </td>
             </tr>
-            <!-- Panel d'assignation inline -->
-            <tr v-if="assigningStudent?.id === s.id" class="bg-blue-50">
-              <td colspan="6" class="px-6 py-4 border-t border-blue-100">
-                <div class="flex flex-wrap gap-4 items-end">
-                  <div class="min-w-52">
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Formateur</label>
-                    <select v-model="assignForm.trainerId" class="input">
-                      <option :value="null">— Aucun —</option>
-                      <option v-for="t in trainers" :key="t.id" :value="t.id">
-                        {{ t.firstName }} {{ t.lastName }}
-                      </option>
-                    </select>
-                  </div>
-                  <div class="min-w-52">
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Tuteur entreprise</label>
-                    <select v-model="assignForm.tutorId" class="input">
-                      <option :value="null">— Aucun —</option>
-                      <option v-for="t in tutors" :key="t.id" :value="t.id">
-                        {{ t.firstName }} {{ t.lastName }}
-                      </option>
-                    </select>
-                  </div>
-                  <div class="flex gap-2">
-                    <button @click="submitAssign" :disabled="assignSubmitting"
-                      class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 text-xs">
-                      {{ assignSubmitting ? 'Enregistrement…' : 'Enregistrer' }}
-                    </button>
-                    <button @click="assigningStudent = null"
-                      class="text-gray-500 text-xs px-3 py-2 hover:text-gray-700">
-                      Annuler
-                    </button>
-                  </div>
-                  <p v-if="assignError" class="w-full text-sm text-red-600">{{ assignError }}</p>
-                </div>
-              </td>
-            </tr>
-            <!-- Panel de modification inline -->
+            <!-- Panel de modification inline (étudiant) -->
             <tr v-if="editingUser?.id === s.id" class="bg-yellow-50">
               <td colspan="6" class="px-6 py-4 border-t border-yellow-100">
                 <div class="flex flex-wrap gap-4 items-end">
@@ -171,6 +131,24 @@
                   <div class="min-w-40">
                     <label class="block text-xs font-medium text-gray-600 mb-1">Téléphone</label>
                     <input v-model="editForm.phone" class="input" />
+                  </div>
+                  <div class="min-w-52">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Formateur</label>
+                    <select v-model="editForm.trainerId" class="input">
+                      <option :value="null">— Aucun —</option>
+                      <option v-for="t in trainers" :key="t.id" :value="t.id">
+                        {{ t.firstName }} {{ t.lastName }}
+                      </option>
+                    </select>
+                  </div>
+                  <div class="min-w-52">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Tuteur entreprise</label>
+                    <select v-model="editForm.tutorId" class="input">
+                      <option :value="null">— Aucun —</option>
+                      <option v-for="t in tutors" :key="t.id" :value="t.id">
+                        {{ t.firstName }} {{ t.lastName }}
+                      </option>
+                    </select>
                   </div>
                   <div class="flex gap-2">
                     <button @click="submitEdit" :disabled="editSubmitting"
@@ -242,6 +220,26 @@
                     <label class="block text-xs font-medium text-gray-600 mb-1">Téléphone</label>
                     <input v-model="editForm.phone" class="input" />
                   </div>
+                  <template v-if="u.role === 'STUDENT'">
+                    <div class="min-w-52">
+                      <label class="block text-xs font-medium text-gray-600 mb-1">Formateur</label>
+                      <select v-model="editForm.trainerId" class="input">
+                        <option :value="null">— Aucun —</option>
+                        <option v-for="t in trainers" :key="t.id" :value="t.id">
+                          {{ t.firstName }} {{ t.lastName }}
+                        </option>
+                      </select>
+                    </div>
+                    <div class="min-w-52">
+                      <label class="block text-xs font-medium text-gray-600 mb-1">Tuteur entreprise</label>
+                      <select v-model="editForm.tutorId" class="input">
+                        <option :value="null">— Aucun —</option>
+                        <option v-for="t in tutors" :key="t.id" :value="t.id">
+                          {{ t.firstName }} {{ t.lastName }}
+                        </option>
+                      </select>
+                    </div>
+                  </template>
                   <div class="flex gap-2">
                     <button @click="submitEdit" :disabled="editSubmitting"
                       class="bg-yellow-500 text-white px-4 py-2 rounded-md hover:bg-yellow-600 disabled:opacity-50 text-xs">
@@ -277,9 +275,6 @@ const showForm = ref(false)
 const submitting = ref(false)
 const formError = ref('')
 const activeFilter = ref('ALL')
-const assigningStudent = ref<any>(null)
-const assignSubmitting = ref(false)
-const assignError = ref('')
 
 const editingUser = ref<any>(null)
 const editSubmitting = ref(false)
@@ -289,6 +284,8 @@ const editForm = reactive({
   firstName: '',
   lastName: '',
   phone: '',
+  trainerId: null as number | null,
+  tutorId: null as number | null,
 })
 
 const filters = [
@@ -301,11 +298,6 @@ const filters = [
 const form = reactive({
   firstName: '', lastName: '', email: '', password: '',
   phone: '', role: 'STUDENT', studentNumber: '', companyName: '',
-  trainerId: null as number | null,
-  tutorId: null as number | null,
-})
-
-const assignForm = reactive({
   trainerId: null as number | null,
   tutorId: null as number | null,
 })
@@ -339,7 +331,6 @@ onMounted(async () => {
 
 const setFilter = (f: string) => {
   activeFilter.value = f
-  assigningStudent.value = null
 }
 
 const openCreate = () => {
@@ -379,43 +370,12 @@ const submitCreate = async () => {
 
 const deleteUser = async (id: number) => {
   if (!confirm('Supprimer cet utilisateur ?')) return
-  await usersApi.delete(id)
-  users.value = users.value.filter(u => u.id !== id)
-  studentProfiles.value = studentProfiles.value.filter(s => s.id !== id)
-}
-
-const toggleAssign = (student: any) => {
-  if (assigningStudent.value?.id === student.id) {
-    assigningStudent.value = null
-    return
-  }
-  assigningStudent.value = student
-  assignError.value = ''
-  assignForm.trainerId = student.trainer?.id ?? null
-  assignForm.tutorId = student.tutor?.id ?? null
-}
-
-const submitAssign = async () => {
-  if (!assigningStudent.value) return
-  assignSubmitting.value = true
-  assignError.value = ''
   try {
-    const studentId = assigningStudent.value.id
-    const promises: Promise<any>[] = []
-    if (assignForm.trainerId && assignForm.trainerId !== (assigningStudent.value.trainer?.id ?? null)) {
-      promises.push(studentsApi.assignTrainer(studentId, assignForm.trainerId))
-    }
-    if (assignForm.tutorId && assignForm.tutorId !== (assigningStudent.value.tutor?.id ?? null)) {
-      promises.push(studentsApi.assignTutor(studentId, assignForm.tutorId))
-    }
-    await Promise.all(promises)
-    const sRes = await studentsApi.list()
-    studentProfiles.value = sRes.data
-    assigningStudent.value = null
+    await usersApi.delete(id)
+    users.value = users.value.filter(u => u.id !== id)
+    studentProfiles.value = studentProfiles.value.filter(s => s.id !== id)
   } catch (err: any) {
-    assignError.value = err.response?.data?.message ?? "Erreur lors de l'assignation"
-  } finally {
-    assignSubmitting.value = false
+    alert(err.response?.data?.message ?? 'Erreur lors de la suppression')
   }
 }
 
@@ -429,6 +389,14 @@ const openEdit = (user: any) => {
   editForm.firstName = user.firstName ?? ''
   editForm.lastName = user.lastName ?? ''
   editForm.phone = user.phone ?? ''
+  if (user.role === 'STUDENT') {
+    const profile = studentProfiles.value.find((s: any) => s.id === user.id)
+    editForm.trainerId = (user.trainer?.id ?? profile?.trainer?.id) ?? null
+    editForm.tutorId = (user.tutor?.id ?? profile?.tutor?.id) ?? null
+  } else {
+    editForm.trainerId = null
+    editForm.tutorId = null
+  }
 }
 
 const submitEdit = async () => {
@@ -436,12 +404,34 @@ const submitEdit = async () => {
   editSubmitting.value = true
   editError.value = ''
   try {
-    const res = await usersApi.update(editingUser.value.id, { ...editForm })
+    const res = await usersApi.update(editingUser.value.id, {
+      firstName: editForm.firstName,
+      lastName: editForm.lastName,
+      phone: editForm.phone,
+    })
     const updated = res.data
     const idx = users.value.findIndex(u => u.id === updated.id)
     if (idx !== -1) users.value[idx] = { ...users.value[idx], ...updated }
-    const sIdx = studentProfiles.value.findIndex(s => s.id === updated.id)
-    if (sIdx !== -1) studentProfiles.value[sIdx] = { ...studentProfiles.value[sIdx], ...updated }
+
+    if (editingUser.value.role === 'STUDENT') {
+      const profile = studentProfiles.value.find((s: any) => s.id === editingUser.value.id)
+      const promises: Promise<any>[] = []
+      if (editForm.trainerId !== null && editForm.trainerId !== (profile?.trainer?.id ?? null)) {
+        promises.push(studentsApi.assignTrainer(editingUser.value.id, editForm.trainerId))
+      }
+      if (editForm.tutorId !== null && editForm.tutorId !== (profile?.tutor?.id ?? null)) {
+        promises.push(studentsApi.assignTutor(editingUser.value.id, editForm.tutorId))
+      }
+      if (promises.length) {
+        await Promise.all(promises)
+        const sRes = await studentsApi.list()
+        studentProfiles.value = sRes.data
+      } else {
+        const sIdx = studentProfiles.value.findIndex(s => s.id === updated.id)
+        if (sIdx !== -1) studentProfiles.value[sIdx] = { ...studentProfiles.value[sIdx], ...updated }
+      }
+    }
+
     editingUser.value = null
   } catch (err: any) {
     editError.value = err.response?.data?.message ?? 'Erreur lors de la modification'
